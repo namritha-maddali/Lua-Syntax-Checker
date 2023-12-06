@@ -1,7 +1,8 @@
-
+# both the lexer and parser are done in the same code
 import ply.lex as lex 
 import ply.yacc as yacc 
 
+# lexer
 tokens = (
     'FUNCTION', 
     'VARNAME', 
@@ -42,6 +43,7 @@ t_LCURLY = r'\{'
 t_RCURLY = r'\}'
 t_DOT = r"\."
 
+# syntax for numbers
 def t_NUMBER(t):
     r'\d+'
     t.value = int(t.value)  
@@ -51,6 +53,7 @@ def t_STRING(t):
     r'(\'[^\']*\'|\"[^\"]*\")'
     return t
 
+# possible variable names, excluding the keywords
 def t_VARNAME(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
     reserved = {
@@ -63,10 +66,12 @@ def t_VARNAME(t):
     t.type = reserved.get(t.value, 'VARNAME')
     return t
 
+# to consider the syntax for all the possible statements in the body of a statement
 def t_STATEMENT(t):
     r'(?:function\s+[a-zA-Z_][a-zA-Z0-9_]*\(.*\)\s+end|if\s+.+\s+then\s+.+\s+end|while\s+.+\s+do\s+.+\s+end|for\s+[a-zA-Z_][a-zA-Z0-9_]*\s+=\s+.+\s+do\s+.+\s+end|repeat\s+.+\s+until\s+.+|local\s+[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*.+|return\s+.+|break|print*\(.*\)|[\"\'][^\"\']*[\"\']|\b\w+\s*\(.*\)|\w+\s*(?:[\+\-\*/\%\^]|==|<=|>=|<>)?=.+|[a-zA-Z_][a-zA-Z0-9_]*)'
     return t
 
+# relational operator
 def t_REL_OPERATOR(t):
     r'(<=|>=|<|>|==|<>)'
     return t
@@ -83,6 +88,7 @@ lexer = lex.lex()
 
 flag = 0
 
+# parser
 def p_start(p):
     '''
     start : function
@@ -93,6 +99,7 @@ def p_start(p):
 
     '''
 
+# grammar for function declaration
 def p_function(p):
     '''
     function : FUNCTION VARNAME LPAREN arguments RPAREN END 
@@ -105,7 +112,7 @@ def p_arguments(p):
             | VARNAME COMMA arguments
     '''
 
-
+# grammar for nested if statements with else block included
 def p_if(p):
     '''
     if : IF condition THEN statement else END
@@ -122,6 +129,7 @@ def p_else(p):
     else : ELSE statement
     '''
 
+# grammar for the conditions that are given as input to the if statement
 def p_condition(p):
     '''
     condition : condition logical_operator condition 
@@ -140,12 +148,13 @@ def p_logical_operator(p):
                       | OR
     '''
 
-
+# grammar for for loop
 def p_for(p):
     '''
     for : FOR VARNAME methods DO statement END
     '''
 
+# grammar for different ways of looping 
 def p_methods(p):
     '''
     methods : EQUAL variable COMMA variable COMMA variable
@@ -208,7 +217,7 @@ def p_variable(p):
              | NUMBER 
     '''
 
-
+# grammar for array or list declaration (in lua, lists are called tables)
 def p_table(p):
     '''
     table : VARNAME EQUAL LCURLY RCURLY
@@ -223,14 +232,14 @@ def p_list(p):
          | args COMMA list
     '''
 
-
+# grammar for exception handling
 def p_exception(p):
     '''
     exception : PCALL LPAREN VARNAME COMMA args RPAREN
               | XPCALL LPAREN VARNAME COMMA VARNAME COMMA args RPAREN
     '''
 
-
+# if an error is found in the syntax
 def p_error(p):
     print(f"Syntax error at position {p.lexpos}, unexpected token '{p.value}'")
     global flag
